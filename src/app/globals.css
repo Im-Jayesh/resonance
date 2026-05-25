@@ -94,12 +94,16 @@
 @layer base {
   * {
     @apply border-border outline-ring/50;
+    -webkit-tap-highlight-color: transparent;
   }
   body {
-    @apply bg-background text-foreground selection:bg-primary selection:text-primary-foreground;
+    @apply bg-background text-foreground selection:bg-primary selection:text-primary-foreground h-full;
+    touch-action: manipulation;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: env(safe-area-inset-bottom, 24px);
   }
   html {
-    @apply font-sans;
+    @apply font-sans h-full overflow-hidden;
   }
 }
 
@@ -110,5 +114,18 @@
   
   .text-gradient {
     @apply bg-clip-text text-transparent bg-gradient-to-br from-foreground to-foreground/60;
+  }
+
+  .safe-pb {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .safe-pt {
+    padding-top: env(safe-area-inset-top);
+  }
+
+  .no-select {
+    -webkit-user-select: none;
+    user-select: none;
   }
 }

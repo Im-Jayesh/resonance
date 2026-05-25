@@ -31,7 +31,7 @@ import {
   Loader2,
   Trash2
 } from "lucide-react";
-import { format, isSameDay } from "date-fns";
+import { format } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
 import { usePlayerStore } from "@/stores/use-player-store";
 import { cn } from "@/lib/utils";
@@ -306,71 +306,71 @@ function ReflectionCard({ entry, onPlay }: { entry: JournalEntry; onPlay: () => 
         setIsOpen(val);
         if (!val) setIsEditing(false);
       }}>
-        <DialogContent className="max-w-[90vw] min-w-[90vw] h-[95vh] p-0 overflow-hidden glass border-white/10 shadow-2xl flex flex-col">
-          <DialogHeader className="p-8 border-b border-white/5 bg-background/40 shrink-0">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-6">
-                <div className="h-20 w-20 rounded-xl overflow-hidden bg-secondary shadow-2xl ring-1 ring-white/10 relative group">
+        <DialogContent className="w-full sm:max-w-[90vw] h-full sm:h-[95vh] p-0 overflow-hidden glass border-white/10 shadow-2xl flex flex-col rounded-none sm:rounded-[2rem]">
+          <DialogHeader className="p-4 md:p-8 border-b border-white/5 bg-background/40 shrink-0">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 md:gap-6">
+              <div className="flex items-center gap-4 md:gap-6">
+                <div className="h-14 w-14 md:h-20 md:w-20 rounded-xl overflow-hidden bg-secondary shadow-2xl ring-1 ring-white/10 relative group shrink-0">
                   {entry.song.coverArt && <img src={entry.song.coverArt} alt={entry.song.title} className="h-full w-full object-cover" />}
                   <Button 
                     size="icon" 
-                    className="absolute inset-0 bg-primary/60 opacity-0 group-hover:opacity-100 transition-opacity rounded-none"
+                    className="absolute inset-0 bg-primary/60 opacity-0 md:group-hover:opacity-100 transition-opacity rounded-none"
                     onClick={(e) => { e.stopPropagation(); onPlay(); }}
                   >
-                    <Play className="h-8 w-8 fill-current" />
+                    <Play className="h-6 w-6 fill-current" />
                   </Button>
                 </div>
-                <div>
-                  <div className="flex items-center gap-3 mb-1">
-                    <DialogTitle className="text-3xl font-bold tracking-tight">{entry.song.title}</DialogTitle>
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2 md:gap-3 mb-1">
+                    <DialogTitle className="text-xl md:text-3xl font-bold tracking-tight truncate">{entry.song.title}</DialogTitle>
                     {isEditing ? (
                       <ToggleGroup type="single" value={editMood ? [editMood] : []} onValueChange={(v: string[]) => setEditMood(v[0] || "")} className="bg-white/5 rounded-full p-1 gap-1">
                          {Object.keys(MOOD_ICONS).map((m) => {
                            const Icon = MOOD_ICONS[m].icon;
                            return (
-                             <ToggleGroupItem key={m} value={m} className="h-8 w-8 rounded-full p-0 border-none data-[state=on]:bg-primary/20" title={MOOD_ICONS[m].label}>
-                               <Icon className="h-3.5 w-3.5" />
+                             <ToggleGroupItem key={m} value={m} className="h-7 w-7 md:h-8 md:w-8 rounded-full p-0 border-none data-[state=on]:bg-primary/20" title={MOOD_ICONS[m].label}>
+                               <Icon className="h-3 w-3 md:h-3.5 md:w-3.5" />
                              </ToggleGroupItem>
                            );
                          })}
                       </ToggleGroup>
                     ) : (
                       MoodIcon && (
-                        <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20 gap-1.5 px-3 py-1 capitalize">
-                          <MoodIcon className="h-3 w-3" /> {entry.mood}
+                        <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20 gap-1.5 px-2 py-0.5 md:px-3 md:py-1 text-[10px] md:text-xs capitalize">
+                          <MoodIcon className="h-2.5 w-2.5 md:h-3 md:w-3" /> {entry.mood}
                         </Badge>
                       )
                     )}
                   </div>
-                  <DialogDescription className="text-lg font-medium">{entry.song.artist}</DialogDescription>
+                  <DialogDescription className="text-sm md:text-lg font-medium truncate">{entry.song.artist}</DialogDescription>
                 </div>
               </div>
-              <div className="flex items-center gap-4">
-                <Button variant="outline" onClick={onPlay} className="rounded-full px-6 gap-2 border-white/10 hover:bg-white/5">
-                  <Play className="h-4 w-4 fill-current" /> Play Track
+              <div className="flex items-center gap-3 md:gap-4 overflow-x-auto pb-1 md:pb-0">
+                <Button variant="outline" onClick={onPlay} className="rounded-full px-4 md:px-6 h-9 md:h-11 gap-2 border-white/10 hover:bg-white/5 shrink-0 text-xs md:text-sm">
+                  <Play className="h-3.5 w-3.5 fill-current" /> Play Track
                 </Button>
-                <div className="h-8 w-px bg-white/10" />
+                <div className="h-6 md:h-8 w-px bg-white/10 shrink-0" />
                 {isEditing ? (
-                  <div className="flex gap-2">
-                    <Button variant="ghost" size="sm" onClick={() => { setIsEditing(false); setEditContent(entry.content); setEditMood(entry.mood || ""); }} className="rounded-xl h-11 px-6 text-muted-foreground hover:text-foreground">
-                      <X className="h-4 w-4 mr-2" /> Cancel
+                  <div className="flex gap-2 shrink-0">
+                    <Button variant="ghost" size="sm" onClick={() => { setIsEditing(false); setEditContent(entry.content); setEditMood(entry.mood || ""); }} className="rounded-xl h-9 md:h-11 px-3 md:px-6 text-muted-foreground hover:text-foreground text-xs md:text-sm">
+                      <X className="h-4 w-4 mr-1 md:mr-2" /> Cancel
                     </Button>
-                    <Button onClick={() => updateMutation.mutate({ content: editContent, mood: editMood })} disabled={updateMutation.isPending} className="rounded-xl h-11 px-8 shadow-xl shadow-primary/20">
-                      {updateMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
-                      Save Changes
+                    <Button onClick={() => updateMutation.mutate({ content: editContent, mood: editMood })} disabled={updateMutation.isPending} className="rounded-xl h-9 md:h-11 px-4 md:px-8 shadow-xl shadow-primary/20 text-xs md:text-sm">
+                      {updateMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1 md:mr-2" /> : <Save className="h-3.5 w-3.5 mr-1 md:mr-2" />}
+                      Save
                     </Button>
                   </div>
                 ) : (
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 shrink-0">
                     <Button 
                       variant="ghost" 
                       onClick={handleDelete}
-                      className="rounded-xl h-11 px-4 text-destructive hover:bg-destructive/10"
+                      className="rounded-xl h-9 md:h-11 px-3 md:px-4 text-destructive hover:bg-destructive/10"
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
-                    <Button variant="secondary" onClick={() => setIsEditing(true)} className="rounded-xl h-11 px-8">
-                      <Edit3 className="h-4 w-4 mr-2" /> Edit Reflection
+                    <Button variant="secondary" onClick={() => setIsEditing(true)} className="rounded-xl h-9 md:h-11 px-4 md:px-8 text-xs md:text-sm">
+                      <Edit3 className="h-3.5 w-3.5 mr-1 md:mr-2" /> Edit
                     </Button>
                   </div>
                 )}
@@ -380,21 +380,21 @@ function ReflectionCard({ entry, onPlay }: { entry: JournalEntry; onPlay: () => 
 
           <div className="flex-1 overflow-hidden flex bg-background/20">
             <ScrollArea className="flex-1">
-              <div className="p-16 pb-40 max-w-5xl mx-auto space-y-10">
-                <div className="flex items-center gap-4 mb-6 opacity-30">
-                  <PenLine className="h-6 w-6 text-primary" />
-                  <span className="text-sm font-bold uppercase tracking-[0.5em]">{isEditing ? "Editing Reflection" : "My Reflection"}</span>
+              <div className="p-6 md:p-16 pb-32 md:pb-40 max-w-5xl mx-auto space-y-6 md:space-y-10">
+                <div className="flex items-center gap-3 md:gap-4 mb-2 md:mb-6 opacity-30">
+                  <PenLine className="h-4 w-4 md:h-6 md:w-6 text-primary" />
+                  <span className="text-[10px] md:text-sm font-bold uppercase tracking-[0.3em] md:tracking-[0.5em]">{isEditing ? "Editing Reflection" : "My Reflection"}</span>
                 </div>
                 
                 {isEditing ? (
                   <Textarea 
                     value={editContent}
                     onChange={(e) => setEditContent(e.target.value)}
-                    className="w-full bg-transparent border-none focus-visible:ring-0 p-0 text-3xl leading-relaxed font-serif min-h-[600px] resize-none"
+                    className="w-full bg-transparent border-none focus-visible:ring-0 p-0 text-xl md:text-3xl leading-relaxed font-serif min-h-[400px] md:min-h-[600px] resize-none"
                     placeholder="Support Markdown: **bold**, *italic*, # headings"
                   />
                 ) : (
-                  <div className="prose prose-invert prose-2xl max-w-none font-serif leading-relaxed italic text-foreground/90">
+                  <div className="prose prose-invert prose-lg md:prose-2xl max-w-none font-serif leading-relaxed italic text-foreground/90">
                     <ReactMarkdown remarkPlugins={[remarkGfm]}>
                       {entry.content}
                     </ReactMarkdown>
@@ -402,16 +402,18 @@ function ReflectionCard({ entry, onPlay }: { entry: JournalEntry; onPlay: () => 
                 )}
                 
                 {!isEditing && (
-                  <div className="pt-10 border-t border-white/5 flex items-center gap-2 text-[10px] text-muted-foreground uppercase tracking-widest font-bold">
-                    Recorded on {format(new Date(entry.createdAt), "EEEE, MMMM do, yyyy 'at' h:mm a")}
+                  <div className="pt-6 md:pt-10 border-t border-white/5 flex flex-col md:flex-row md:items-center gap-1 md:gap-2 text-[8px] md:text-[10px] text-muted-foreground uppercase tracking-widest font-bold">
+                    <span>Recorded on {format(new Date(entry.createdAt), "EEEE, MMMM do, yyyy")}</span>
+                    <span className="hidden md:inline">at</span>
+                    <span>{format(new Date(entry.createdAt), "h:mm a")}</span>
                   </div>
                 )}
               </div>
             </ScrollArea>
           </div>
           
-          <div className="p-6 border-t border-white/5 bg-secondary/30 flex justify-end">
-            <Button variant="ghost" onClick={() => setIsOpen(false)}>Close Reflection</Button>
+          <div className="p-4 md:p-6 border-t border-white/5 bg-secondary/30 flex justify-end shrink-0">
+            <Button variant="ghost" onClick={() => setIsOpen(false)} className="h-9 md:h-10 text-xs md:text-sm">Close Reflection</Button>
           </div>
         </DialogContent>
       </Dialog>

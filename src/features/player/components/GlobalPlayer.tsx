@@ -19,17 +19,11 @@ import {
   Music
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useEffect, useRef, useState, useCallback, useMemo } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { getSongMeaningAction } from "@/server/actions/ai.actions";
 import { getLyricsAction } from "@/server/actions/music.actions";
 import { ScrollArea } from "@/components/ui/scroll-area";
-
-interface LRCLine {
-  time: number;
-  text: string;
-}
 
 export function GlobalPlayer() {
   const { 
@@ -54,7 +48,6 @@ export function GlobalPlayer() {
   const [isLoadingLyrics, setIsLoadingLyrics] = useState(false);
   
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const lyricsScrollRef = useRef<HTMLDivElement>(null);
   const mountedRef = useRef(true);
 
   useEffect(() => {
@@ -62,62 +55,11 @@ export function GlobalPlayer() {
     return () => { mountedRef.current = false; };
   }, []);
 
-  // Parse LRC lyrics
-  const parsedLyrics = useMemo(() => {
-    if (!lyricsRaw) return [];
-    const lines = lyricsRaw.split("\n");
-    const result: LRCLine[] = [];
-    const lrcRegex = /^\[(\d{2}):(\d{2})\.(\d{2,3})\](.*)/;
-
-    lines.forEach(line => {
-      const match = line.match(lrcRegex);
-      if (match) {
-        const minutes = parseInt(match[1]);
-        const seconds = parseInt(match[2]);
-        const milliseconds = parseInt(match[3]);
-        const time = minutes * 60 + seconds + milliseconds / 1000;
-        result.push({ time, text: match[4].trim() });
-      }
-    });
-
-    return result;
-  }, [lyricsRaw]);
-
-  // Find active lyric line
-  const activeLineIndex = useMemo(() => {
-    if (parsedLyrics.length === 0) return -1;
-    let index = -1;
-    for (let i = 0; i < parsedLyrics.length; i++) {
-      if (currentTime >= parsedLyrics[i].time) {
-        index = i;
-      } else {
-        break;
-      }
-    }
-    return index;
-  }, [parsedLyrics, currentTime]);
-
-  const seekTo = useCallback((time: number) => {
-    if (audioRef.current && isFinite(time)) {
-      audioRef.current.currentTime = time;
-      setCurrentTime(time);
-    }
-  }, []);
-
-  // Auto-scroll lyrics
-  useEffect(() => {
-    if (activeLineIndex !== -1 && lyricsScrollRef.current) {
-      const activeElement = lyricsScrollRef.current.querySelector(`[data-index="${activeLineIndex}"]`);
-      if (activeElement) {
-        activeElement.scrollIntoView({ behavior: "smooth", block: "center" });
-      }
-    }
-  }, [activeLineIndex]);
-
   const fetchLyrics = useCallback(async () => {
     if (!currentSong) return;
     setIsLoadingLyrics(true);
     try {
+      // Direct call to music provider for plain-text lyrics
       const lyrics = await getLyricsAction(currentSong.id);
       setLyricsRaw(lyrics);
     } catch {
@@ -235,42 +177,66 @@ export function GlobalPlayer() {
       <motion.div
         initial={{ y: 100 }}
         animate={{ y: 0 }}
-        className="fixed bottom-0 left-0 right-0 h-24 glass border-t border-white/5 z-50 px-4 md:px-8 flex items-center justify-between"
+        className="fixed bottom-0 left-0 right-0 h-20 md:h-24 glass border-t border-white/5 z-50 px-4 md:px-8 flex items-center justify-between safe-pb no-select"
+        onClick={() => {
+          if (window.innerWidth < 768) setIsExpanded(true);
+        }}
       >
-        <div className="flex items-center gap-4 w-1/3">
+        {/* Left: Song Info */}
+        <div className="flex items-center gap-3 md:gap-4 flex-1 md:w-1/3 min-w-0">
           <div 
-            className="h-14 w-14 rounded-md overflow-hidden bg-secondary cursor-pointer group relative shadow-lg"
-            onClick={() => setIsExpanded(!isExpanded)}
+            className="h-12 w-12 md:h-14 md:w-14 rounded-md overflow-hidden bg-secondary cursor-pointer group relative shadow-lg shrink-0"
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsExpanded(!isExpanded);
+            }}
           >
             {currentSong.coverArt && <img src={currentSong.coverArt} alt={currentSong.title} className="h-full w-full object-cover group-hover:scale-110 transition-transform" />}
-            <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+            <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 md:group-hover:opacity-100 transition-opacity">
                <ChevronUp className="h-4 w-4 text-white" />
             </div>
           </div>
           <div className="flex flex-col min-w-0">
-            <span className="font-medium text-sm truncate max-w-[200px]">{currentSong.title}</span>
-            <span className="text-xs text-muted-foreground truncate max-w-[200px]">{currentSong.artist}</span>
+            <span className="font-semibold text-sm md:text-base truncate pr-2">{currentSong.title}</span>
+            <span className="text-xs text-muted-foreground truncate">{currentSong.artist}</span>
           </div>
         </div>
 
-        <div className="flex flex-col items-center gap-2 w-1/3">
-          <div className="flex items-center gap-6">
+        {/* Center: Controls */}
+        <div className="flex flex-col items-center gap-1 md:gap-2 md:w-1/3 shrink-0">
+          <div className="flex items-center gap-4 md:gap-6">
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" onClick={toggleLoop} className={cn("h-8 w-8", loopMode !== "none" && "text-primary")}>
+                <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); toggleLoop(); }} className={cn("h-8 w-8 hidden md:flex", loopMode !== "none" && "text-primary")}>
                   {loopMode === "one" ? <Repeat1 className="h-4 w-4" /> : <Repeat className="h-4 w-4" />}
                 </Button>
               </TooltipTrigger>
               <TooltipContent>Loop: {loopMode}</TooltipContent>
             </Tooltip>
 
-            <Button variant="ghost" size="icon" onClick={previous} className="text-muted-foreground hover:text-foreground">
+            <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); previous(); }} className="text-muted-foreground hover:text-foreground hidden md:flex">
               <SkipBack className="h-5 w-5 fill-current" />
             </Button>
-            <Button size="icon" onClick={togglePlay} className="h-10 w-10 rounded-full shadow-lg shadow-primary/20 bg-primary text-primary-foreground">
-              {isPlaying ? <Pause className="h-5 w-5 fill-current" /> : <Play className="h-5 w-5 fill-current ml-0.5" />}
-            </Button>
-            <Button variant="ghost" size="icon" onClick={next} className="text-muted-foreground hover:text-foreground">
+            
+            <div className="flex items-center gap-2">
+              <Button 
+                size="icon" 
+                onClick={(e) => { e.stopPropagation(); togglePlay(); }} 
+                className="h-10 w-10 md:h-12 md:w-12 rounded-full shadow-lg shadow-primary/20 bg-primary text-primary-foreground"
+              >
+                {isPlaying ? <Pause className="h-5 w-5 md:h-6 md:w-6 fill-current" /> : <Play className="h-5 w-5 md:h-6 md:w-6 fill-current ml-0.5" />}
+              </Button>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={(e) => { e.stopPropagation(); next(); }} 
+                className="text-muted-foreground hover:text-foreground md:hidden"
+              >
+                <SkipForward className="h-6 w-6 fill-current" />
+              </Button>
+            </div>
+
+            <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); next(); }} className="text-muted-foreground hover:text-foreground hidden md:flex">
               <SkipForward className="h-5 w-5 fill-current" />
             </Button>
 
@@ -279,11 +245,8 @@ export function GlobalPlayer() {
                 <Button 
                   variant="ghost" 
                   size="icon" 
-                  className={cn("h-8 w-8", showLyrics && "text-primary")}
-                  onClick={() => {
-                    const nextVal = !showLyrics;
-                    setShowLyrics(nextVal);
-                  }}
+                  className={cn("h-8 w-8 hidden md:flex", showLyrics && "text-primary")}
+                  onClick={(e) => { e.stopPropagation(); setShowLyrics(!showLyrics); }}
                 >
                   <LayoutList className="h-4 w-4" />
                 </Button>
@@ -291,7 +254,7 @@ export function GlobalPlayer() {
               <TooltipContent>Lyrics</TooltipContent>
             </Tooltip>
           </div>
-          <div className="w-full flex items-center gap-2 max-w-md">
+          <div className="w-full hidden md:flex items-center gap-2 max-w-md px-4">
             <span className="text-[10px] text-muted-foreground min-w-[30px] text-right">{formatTime(currentTime)}</span>
             <Slider 
               value={[progress]} 
@@ -305,7 +268,8 @@ export function GlobalPlayer() {
           </div>
         </div>
 
-        <div className="flex items-center justify-end gap-4 w-1/3">
+        {/* Right: Volume/Maximize */}
+        <div className="hidden md:flex items-center justify-end gap-4 w-1/3">
           <div className="flex items-center gap-2 w-32">
             <Volume2 className="h-4 w-4 text-muted-foreground" />
             <Slider 
@@ -319,10 +283,18 @@ export function GlobalPlayer() {
             variant="ghost" 
             size="icon" 
             className={cn(isExpanded && "text-primary")}
-            onClick={() => setIsExpanded(!isExpanded)}
+            onClick={(e) => { e.stopPropagation(); setIsExpanded(!isExpanded); }}
           >
             <Maximize2 className="h-4 w-4 text-muted-foreground" />
           </Button>
+        </div>
+
+        {/* Progress Bar (Mobile only) */}
+        <div className="absolute top-0 left-0 right-0 h-0.5 bg-white/5 md:hidden">
+          <div 
+            className="h-full bg-primary transition-all duration-300" 
+            style={{ width: `${progress}%` }} 
+          />
         </div>
         
         <audio 
@@ -348,67 +320,88 @@ export function GlobalPlayer() {
             initial={{ y: "100%" }}
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
-            transition={{ type: "spring", damping: 25, stiffness: 200 }}
-            className="fixed inset-0 bg-background/95 backdrop-blur-3xl z-[60] flex flex-col p-8 md:p-16"
+            transition={{ type: "spring", damping: 30, stiffness: 300 }}
+            drag="y"
+            dragConstraints={{ top: 0 }}
+            dragElastic={0.2}
+            onDragEnd={(_, info) => {
+              if (info.offset.y > 150) setIsExpanded(false);
+            }}
+            className="fixed inset-0 bg-background/95 backdrop-blur-3xl z-[60] flex flex-col p-6 md:p-16 no-select"
           >
-            <div className="flex justify-between items-center mb-12 shrink-0">
-               <Button variant="ghost" size="icon" onClick={() => setIsExpanded(false)} className="rounded-full hover:bg-white/5 h-12 w-12">
-                 <ChevronDown className="h-8 w-8" />
+            {/* Handle for drag indicator on mobile */}
+            <div className="w-12 h-1.5 bg-white/10 rounded-full mx-auto mb-8 md:hidden shrink-0" />
+
+            <div className="flex justify-between items-center mb-6 md:mb-12 shrink-0">
+               <Button variant="ghost" size="icon" onClick={() => setIsExpanded(false)} className="rounded-full hover:bg-white/5 h-10 w-10 md:h-12 md:w-12">
+                 <ChevronDown className="h-6 w-6 md:h-8 md:w-8" />
                </Button>
                <div className="text-center">
                  <p className="text-[10px] font-bold uppercase tracking-[0.4em] text-primary mb-1">Now Playing</p>
-                 <p className="text-sm font-medium opacity-40 truncate max-w-xs">{currentSong.album || "Single"}</p>
+                 <p className="text-xs md:text-sm font-medium opacity-40 truncate max-w-[150px] md:max-w-xs">{currentSong.album || "Single"}</p>
                </div>
-               <div className="w-12" />
+               <div className="w-10 md:w-12" />
             </div>
 
-            <div className="flex-1 flex flex-col md:flex-row items-center justify-center gap-12 md:gap-24 max-w-7xl mx-auto w-full overflow-hidden">
-              <div className="w-full md:w-2/5 aspect-square max-w-lg rounded-[3rem] overflow-hidden shadow-2xl shadow-primary/20 ring-1 ring-white/10 shrink-0">
+            <div className="flex-1 flex flex-col md:flex-row items-center justify-center gap-8 md:gap-24 max-w-7xl mx-auto w-full overflow-hidden pb-12 md:pb-0">
+              <div className="w-full md:w-2/5 aspect-square max-w-[320px] md:max-w-lg rounded-[2rem] md:rounded-[3rem] overflow-hidden shadow-2xl shadow-primary/20 ring-1 ring-white/10 shrink-0">
                 {currentSong.coverArt && <img src={currentSong.coverArt} alt={currentSong.title} className="h-full w-full object-cover" />}
               </div>
               
-              <div className="w-full md:w-3/5 space-y-16 flex flex-col justify-center min-w-0 h-full">
-                <div className="flex justify-between items-end gap-8">
-                  <div className="space-y-4 min-w-0 flex-1">
-                    <h2 className="text-6xl font-bold tracking-tighter leading-tight truncate">{currentSong.title}</h2>
-                    <p className="text-3xl text-muted-foreground truncate">{currentSong.artist}</p>
+              <div className="w-full md:w-3/5 space-y-8 md:space-y-16 flex flex-col justify-center min-w-0 h-auto md:h-full">
+                <div className="flex justify-between items-end gap-4 md:gap-8">
+                  <div className="space-y-2 md:space-y-4 min-w-0 flex-1">
+                    <h2 className="text-3xl md:text-6xl font-bold tracking-tighter leading-tight truncate">{currentSong.title}</h2>
+                    <p className="text-xl md:text-3xl text-muted-foreground truncate">{currentSong.artist}</p>
                   </div>
-                  <Button variant="outline" size="icon" onClick={() => setShowLyrics(!showLyrics)} className={cn("h-14 w-14 rounded-2xl border-white/10", showLyrics && "bg-primary text-primary-foreground border-none")}>
-                     <LayoutList className="h-6 w-6" />
+                  <Button 
+                    variant="outline" 
+                    size="icon" 
+                    onClick={() => setShowLyrics(!showLyrics)} 
+                    className={cn(
+                      "h-12 w-12 md:h-14 md:w-14 rounded-xl md:rounded-2xl border-white/10 shrink-0", 
+                      showLyrics && "bg-primary text-primary-foreground border-none"
+                    )}
+                  >
+                     <LayoutList className="h-5 w-5 md:h-6 md:w-6" />
                   </Button>
                 </div>
 
-                <div className="space-y-10">
-                  <div className="space-y-4">
+                <div className="space-y-6 md:space-y-10">
+                  <div className="space-y-3 md:space-y-4">
                     <Slider 
                       value={[progress]} 
                       max={100} 
                       step={0.1} 
-                      className="w-full h-3" 
+                      className="w-full h-2 md:h-3" 
                       onValueChange={handleSliderChange}
                       onValueCommitted={handleSliderCommit}
                     />
-                    <div className="flex justify-between text-xs font-bold opacity-30 uppercase tracking-[0.2em]">
+                    <div className="flex justify-between text-[10px] md:text-xs font-bold opacity-30 uppercase tracking-[0.2em]">
                       <span>{formatTime(currentTime)}</span>
                       <span>{formatTime(duration)}</span>
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-center gap-14">
-                    <Button variant="ghost" size="icon" onClick={toggleLoop} className={cn("h-12 w-12 rounded-full", loopMode !== "none" && "text-primary bg-primary/5")}>
-                       {loopMode === "one" ? <Repeat1 className="h-6 w-6" /> : <Repeat className="h-6 w-6" />}
+                  <div className="flex items-center justify-between md:justify-center gap-4 md:gap-14">
+                    <Button variant="ghost" size="icon" onClick={toggleLoop} className={cn("h-10 w-10 md:h-12 md:w-12 rounded-full", loopMode !== "none" && "text-primary bg-primary/5")}>
+                       {loopMode === "one" ? <Repeat1 className="h-5 w-5 md:h-6 md:w-6" /> : <Repeat className="h-5 w-5 md:h-6 md:w-6" />}
                     </Button>
-                    <Button variant="ghost" size="icon" onClick={previous} className="h-16 w-16 rounded-full hover:bg-white/5">
-                      <SkipBack className="h-10 w-10 fill-current" />
-                    </Button>
-                    <Button size="icon" onClick={togglePlay} className="h-28 w-28 rounded-full shadow-2xl shadow-primary/40 bg-primary text-primary-foreground hover:scale-105 transition-transform active:scale-95">
-                      {isPlaying ? <Pause className="h-12 w-12 fill-current" /> : <Play className="h-12 w-12 fill-current ml-2" />}
-                    </Button>
-                    <Button variant="ghost" size="icon" onClick={next} className="h-16 w-16 rounded-full hover:bg-white/5">
-                      <SkipForward className="h-10 w-10 fill-current" />
-                    </Button>
-                    <Button variant="ghost" size="icon" className="h-12 w-12 rounded-full hover:bg-white/5 text-muted-foreground">
-                       <Music className="h-6 w-6" />
+                    
+                    <div className="flex items-center gap-6 md:gap-12">
+                      <Button variant="ghost" size="icon" onClick={previous} className="h-12 w-12 md:h-16 md:w-16 rounded-full hover:bg-white/5">
+                        <SkipBack className="h-8 w-8 md:h-10 md:w-10 fill-current" />
+                      </Button>
+                      <Button size="icon" onClick={togglePlay} className="h-20 w-20 md:h-28 md:w-28 rounded-full shadow-2xl shadow-primary/40 bg-primary text-primary-foreground hover:scale-105 transition-transform active:scale-95">
+                        {isPlaying ? <Pause className="h-10 w-10 md:h-12 md:w-12 fill-current" /> : <Play className="h-10 w-10 md:h-12 md:w-12 fill-current ml-1.5 md:ml-2" />}
+                      </Button>
+                      <Button variant="ghost" size="icon" onClick={next} className="h-12 w-12 md:h-16 md:w-16 rounded-full hover:bg-white/5">
+                        <SkipForward className="h-8 w-8 md:h-10 md:w-10 fill-current" />
+                      </Button>
+                    </div>
+
+                    <Button variant="ghost" size="icon" className="h-10 w-10 md:h-12 md:w-12 rounded-full hover:bg-white/5 text-muted-foreground">
+                       <Music className="h-5 w-5 md:h-6 md:w-6" />
                     </Button>
                   </div>
                 </div>
@@ -418,57 +411,41 @@ export function GlobalPlayer() {
         )}
       </AnimatePresence>
 
-      {/* Synced Lyrics Sidebar / Overlay */}
       <AnimatePresence>
         {showLyrics && (
           <motion.div
-            initial={{ opacity: 0, x: isExpanded ? 0 : 40, y: isExpanded ? 0 : 20 }}
-            animate={{ opacity: 1, x: 0, y: 0 }}
-            exit={{ opacity: 0, x: isExpanded ? 0 : 40, y: isExpanded ? 0 : 20 }}
+            initial={{ opacity: 0, y: "100%" }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: "100%" }}
+            transition={{ type: "spring", damping: 25, stiffness: 200 }}
             className={cn(
-              "glass border border-white/10 shadow-2xl z-[70] flex flex-col",
+              "glass border border-white/10 shadow-2xl z-[70] flex flex-col no-select",
               isExpanded 
-                ? "fixed top-1/2 -translate-y-1/2 right-12 w-[30%] h-[70vh] rounded-[2.5rem]" 
-                : "fixed bottom-28 right-8 w-80 h-[450px] rounded-2xl"
+                ? "fixed bottom-0 left-0 right-0 h-[85vh] md:top-1/2 md:-translate-y-1/2 md:right-12 md:left-auto md:w-[30%] md:h-[70vh] md:rounded-[2.5rem] rounded-t-[2.5rem]" 
+                : "fixed bottom-0 left-0 right-0 h-[60vh] md:bottom-28 md:right-8 md:left-auto md:w-80 md:h-[450px] md:rounded-2xl rounded-t-[2.5rem]"
             )}
           >
             <div className="p-6 border-b border-white/5 flex items-center justify-between bg-white/5 shrink-0">
                <div className="flex items-center gap-2">
                  <LayoutList className="h-4 w-4 text-primary" />
-                 <span className="text-[10px] font-bold uppercase tracking-widest">Real-time Lyrics</span>
+                 <span className="text-[10px] font-bold uppercase tracking-widest text-foreground/60">Lyrics</span>
                </div>
                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full" onClick={() => setShowLyrics(false)}>
                  <X className="h-4 w-4" />
                </Button>
             </div>
-            <ScrollArea className="flex-1" ref={lyricsScrollRef}>
-               <div className="p-8 space-y-6">
+            <ScrollArea className="flex-1">
+               <div className="p-8 pb-12">
                  {isLoadingLyrics ? (
                    <div className="space-y-6 py-10">
                      {[1,2,3,4,5].map(i => (
                         <div key={i} className={cn("h-4 bg-white/5 animate-pulse rounded-full", i % 2 === 0 ? "w-full" : "w-3/4")} />
                      ))}
                    </div>
-                 ) : parsedLyrics.length > 0 ? (
-                   parsedLyrics.map((line, i) => (
-                     <p 
-                        key={i} 
-                        data-index={i}
-                        className={cn(
-                          "text-2xl font-bold leading-tight transition-all duration-500 cursor-pointer hover:text-foreground",
-                          i === activeLineIndex ? "text-primary scale-105 origin-left" : "text-muted-foreground/30 blur-[0.5px]"
-                        )}
-                        onClick={() => seekTo(line.time)}
-                      >
-                       {line.text}
-                     </p>
-                   ))
                  ) : (
-                   <div className="py-20 text-center space-y-4">
-                     <p className="text-sm text-muted-foreground italic leading-relaxed">
-                        {lyricsRaw || "Lyrics not available for this track."}
-                     </p>
-                   </div>
+                   <p className="text-lg md:text-xl font-medium leading-relaxed text-foreground/90 font-serif italic whitespace-pre-wrap">
+                     {lyricsRaw || "Lyrics not available for this track."}
+                   </p>
                  )}
                </div>
             </ScrollArea>

@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Providers from "@/components/shared/Providers";
@@ -13,10 +13,24 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+export const viewport: Viewport = {
+  themeColor: "#000000",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: "cover",
+};
+
 export const metadata: Metadata = {
   title: "Resonance | Premium Music Journaling",
   description:
     "Explore the deep meaning of music through AI-powered emotional analysis and personal journaling.",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Resonance",
+  },
   openGraph: {
     title: "Resonance | Premium Music Journaling",
     description:
@@ -44,10 +58,12 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} dark h-full antialiased`}
       suppressHydrationWarning
     >
-      <body className="min-h-full bg-background text-foreground font-sans selection:bg-primary/20 pb-24">
+      <body className="h-full bg-background text-foreground font-sans selection:bg-primary/20 overflow-x-hidden">
         <TooltipProvider>
           <Providers>
-            {children}
+            <main className="h-full overflow-y-auto">
+              {children}
+            </main>
             <GlobalPlayer />
           </Providers>
           <Toaster position="top-center" richColors />

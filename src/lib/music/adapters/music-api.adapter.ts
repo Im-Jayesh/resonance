@@ -148,23 +148,19 @@ private extractArtist(item: any): string {
 
   async getLyrics(id: string): Promise<string> {
     try {
-      // 1. Try LRCLIB first for synced lyrics (Spotify style)
-      // We need metadata to search LRCLIB since IDs are different
-      const song = await this.getSong(id);
-      console.log(`🎵 Music API: Fetching synced lyrics from LRCLIB for "${song.title}"`);
-      const lrcRes = await fetch(`https://lrclib.net/api/get?artist_name=${encodeURIComponent(song.artist)}&track_name=${encodeURIComponent(song.title)}`);
-      if (lrcRes.ok) {
-        const lrcData = await lrcRes.json();
-        if (lrcData.syncedLyrics) return lrcData.syncedLyrics;
-        if (lrcData.plainLyrics) return lrcData.plainLyrics;
+      if (id.startsWith("itunes-")) {
+        return "Lyrics not available for preview tracks.";
       }
 
-      // 2. Fallback to JioSaavn if id is not itunes
-      if (id.startsWith("itunes-")) return "Lyrics not available for preview tracks.";
+      console.log(`🎵 Music API: Fetching plain-text lyrics for song ID: ${id}`);
       const data = await this.fetchWithRetry(`/api/songs/${id}/lyrics`);
-      return data.data?.lyrics || data.lyrics || "Lyrics not available";
+      
+      // The JioSaavn API returns { success: true, data: { lyrics: "..." } }
+      // or sometimes just { lyrics: "..." } depending on the instance
+      return data.data?.lyrics || data.lyrics || "Lyrics not available for this track.";
     } catch (error) {
-      return "Lyrics not available";
+      console.warn("❌ Music API: Failed to fetch lyrics from all instances.");
+      return "Lyrics not available.";
     }
   }
 
