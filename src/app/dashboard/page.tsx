@@ -5,7 +5,7 @@ import { getJournalEntriesAction } from "@/server/actions/journal.actions";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { formatDistanceToNow } from "date-fns";
 import { Button } from "@/components/ui/button";
-import { ChevronRight, Music } from "lucide-react";
+import { ChevronRight, Music, ListMusic } from "lucide-react";
 import Link from "next/link";
 
 export default async function DashboardPage() {
@@ -21,12 +21,20 @@ export default async function DashboardPage() {
           <h1 className="text-4xl font-bold tracking-tight text-gradient">Welcome back, {session.user?.name}</h1>
           <p className="text-muted-foreground text-lg">What&apos;s the soundtrack to your thoughts today?</p>
         </div>
-        <Button size="lg" asChild className="rounded-2xl h-14 px-8 shadow-xl shadow-primary/20">
-          <Link href="/reflections">
-            View All Reflections
-            <ChevronRight className="ml-2 h-4 w-4" />
-          </Link>
-        </Button>
+        <div className="flex gap-4">
+          <Button size="lg" variant="outline" asChild className="rounded-2xl h-14 px-8 border-white/10 hover:bg-white/5">
+            <Link href="/playlists">
+              <ListMusic className="mr-2 h-4 w-4" />
+              Your Playlists
+            </Link>
+          </Button>
+          <Button size="lg" asChild className="rounded-2xl h-14 px-8 shadow-xl shadow-primary/20">
+            <Link href="/reflections">
+              View All Reflections
+              <ChevronRight className="ml-2 h-4 w-4" />
+            </Link>
+          </Button>
+        </div>
       </section>
 
       <section className="space-y-8 bg-secondary/10 p-8 md:p-12 rounded-[2.5rem] border border-white/5">

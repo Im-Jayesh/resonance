@@ -82,15 +82,16 @@ model Song {
   artist          String
   album           String?
   coverArt        String?
-  previewUrl      String?
   duration        Int?
   genre           String?
   releaseDate     String?
+  previewUrl      String?
   journalEntries  JournalEntry[]
   playbackHistory PlaybackHistory[]
   meaning         SongMeaning?
   snapshots       SongSnapshot[]
   relations       UserSongRelation[]
+  playlistSongs   PlaylistSong[]
 }
 
 model SongSnapshot {
@@ -161,6 +162,7 @@ model PlaylistSong {
   songId     String
   order      Int
   playlist   Playlist @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+  song       Song     @relation(fields: [songId], references: [id], onDelete: Cascade)
 
   @@index([playlistId])
 }

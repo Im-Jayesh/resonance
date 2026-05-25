@@ -6,15 +6,15 @@ import { searchSongsAction } from "@/server/actions/music.actions";
 import { queryKeys } from "@/lib/api/query-keys";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, Play, Plus } from "lucide-react";
+import { Search, Play } from "lucide-react";
 import { usePlayerStore } from "@/stores/use-player-store";
 import { motion } from "framer-motion";
 import { JournalModal } from "@/features/journal/components/JournalModal";
-import { toast } from "sonner";
+import { AddToPlaylistModal } from "@/features/songs/components/AddToPlaylistModal";
 
 export function SongSearch() {
   const [query, setQuery] = useState("");
-  const { setCurrentSong, addToQueue } = usePlayerStore();
+  const { setCurrentSong } = usePlayerStore();
 
   const { data: songs, isLoading } = useQuery({
     queryKey: queryKeys.songs.search(query),
@@ -61,17 +61,7 @@ export function SongSearch() {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="h-8 w-8"
-                onClick={() => {
-                  addToQueue(song);
-                  toast.success(`Added ${song.title} to queue`);
-                }}
-              >
-                <Plus className="h-4 w-4" />
-              </Button>
+              <AddToPlaylistModal song={song} />
               <JournalModal song={song} />
             </div>
           </motion.div>

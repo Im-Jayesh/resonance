@@ -31,6 +31,8 @@ export const metadata: Metadata = {
 import { Toaster } from "@/components/ui/sonner";
 import { GlobalPlayer } from "@/features/player/components/GlobalPlayer";
 
+import { TooltipProvider } from "@/components/ui/tooltip";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -43,11 +45,13 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <body className="min-h-full bg-background text-foreground font-sans selection:bg-primary/20 pb-24">
-        <Providers>
-          {children}
-          <GlobalPlayer />
-        </Providers>
-        <Toaster position="top-center" richColors />
+        <TooltipProvider>
+          <Providers>
+            {children}
+            <GlobalPlayer />
+          </Providers>
+          <Toaster position="top-center" richColors />
+        </TooltipProvider>
       </body>
     </html>
   );

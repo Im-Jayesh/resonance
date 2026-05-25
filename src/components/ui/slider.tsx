@@ -10,11 +10,14 @@ function Slider({
   max = 100,
   ...props
 }: SliderPrimitive.Root.Props) {
-  const _values = Array.isArray(value)
+  // Ensure we have a valid array of numbers to iterate over for thumbs
+  const rawValues = Array.isArray(value)
     ? value
     : Array.isArray(defaultValue)
       ? defaultValue
-      : [min, max]
+      : [min]; // Default to min instead of [min, max] for single thumb sliders
+
+  const safeValues = rawValues.map(v => isFinite(v) ? v : min);
 
   return (
     <SliderPrimitive.Root
@@ -37,7 +40,7 @@ function Slider({
             className="bg-primary select-none data-horizontal:h-full data-vertical:w-full"
           />
         </SliderPrimitive.Track>
-        {Array.from({ length: _values.length }, (_, index) => (
+        {safeValues.map((_, index) => (
           <SliderPrimitive.Thumb
             data-slot="slider-thumb"
             key={index}

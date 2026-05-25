@@ -55,10 +55,12 @@ export async function createJournalEntryAction(
 
     revalidatePath("/dashboard");
     revalidatePath("/reflections");
+    revalidatePath("/playlists");
     return entry;
-  } catch (error: any) {
-    console.error("❌ Journal creation failed:", error.message);
-    throw new Error(`Failed to save entry: ${error.message}`);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Unknown error";
+    console.error("❌ Journal creation failed:", message);
+    throw new Error(`Failed to save entry: ${message}`);
   }
 }
 
@@ -77,9 +79,29 @@ export async function updateJournalEntryAction(id: string, content: string, mood
     revalidatePath("/dashboard");
     revalidatePath("/reflections");
     return entry;
-  } catch (error: any) {
-    console.error("Journal update failed:", error);
-    throw new Error(`Failed to update entry: ${error.message}`);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Unknown error";
+    console.error("Journal update failed:", message);
+    throw new Error(`Failed to update entry: ${message}`);
+  }
+}
+
+export async function deleteJournalEntryAction(id: string) {
+  const session = await auth();
+  if (!session?.user?.id) throw new Error("Unauthorized");
+
+  try {
+    await prisma.journalEntry.delete({
+      where: { id, userId: session.user.id },
+    });
+
+    revalidatePath("/dashboard");
+    revalidatePath("/reflections");
+    return { success: true };
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Unknown error";
+    console.error("Journal deletion failed:", message);
+    throw new Error(`Failed to delete entry: ${message}`);
   }
 }
 

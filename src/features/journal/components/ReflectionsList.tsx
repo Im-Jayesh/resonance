@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getJournalEntriesAction, updateJournalEntryAction } from "@/server/actions/journal.actions";
+import { getJournalEntriesAction, updateJournalEntryAction, deleteJournalEntryAction } from "@/server/actions/journal.actions";
 import { queryKeys } from "@/lib/api/query-keys";
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -28,7 +28,8 @@ import {
   Save,
   X,
   Edit3,
-  Loader2
+  Loader2,
+  Trash2
 } from "lucide-react";
 import { format, isSameDay } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
@@ -79,16 +80,28 @@ export function ReflectionsList() {
   });
 
   const filteredEntries = entries?.filter((entry) => {
+    const entryDate = new Date(entry.createdAt);
+    
     const matchesSearch = 
       entry.content.toLowerCase().includes(search.toLowerCase()) ||
       entry.song.title.toLowerCase().includes(search.toLowerCase()) ||
       entry.song.artist.toLowerCase().includes(search.toLowerCase());
     
-    const matchesMood = !selectedMood || entry.mood === selectedMood;
-    const matchesDate = !selectedDate || isSameDay(new Date(entry.createdAt), selectedDate);
+    const matchesMood = !selectedMood || String(entry.mood).toLowerCase() === selectedMood.toLowerCase();
+    
+    // Normalize dates to start of day for comparison
+    const matchesDate = !selectedDate || (
+      entryDate.getFullYear() === selectedDate.getFullYear() &&
+      entryDate.getMonth() === selectedDate.getMonth() &&
+      entryDate.getDate() === selectedDate.getDate()
+    );
 
     return matchesSearch && matchesMood && matchesDate;
   });
+
+  if (!entries) return null;
+
+  console.log(`Reflections: Filtered to ${filteredEntries?.length} of ${entries?.length} entries. Filters:`, { search, selectedMood, selectedDate });
 
   if (isLoading) {
     return (
@@ -115,7 +128,13 @@ export function ReflectionsList() {
         <div className="flex gap-2">
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant="outline" className={cn("h-12 px-4 rounded-xl border-white/5 bg-secondary/30", selectedMood && "text-primary border-primary/20")}>
+              <Button 
+                variant="outline" 
+                className={cn(
+                  "h-12 px-4 rounded-xl border-white/5 bg-secondary/30",
+                  selectedMood && "text-primary border-primary/20"
+                )}
+              >
                 <Filter className="h-4 w-4 mr-2" />
                 {selectedMood ? selectedMood.charAt(0).toUpperCase() + selectedMood.slice(1) : "Mood"}
               </Button>
@@ -138,7 +157,13 @@ export function ReflectionsList() {
 
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant="outline" className={cn("h-12 px-4 rounded-xl border-white/5 bg-secondary/30", selectedDate && "text-primary border-primary/20")}>
+              <Button 
+                variant="outline" 
+                className={cn(
+                  "h-12 px-4 rounded-xl border-white/5 bg-secondary/30",
+                  selectedDate && "text-primary border-primary/20"
+                )}
+              >
                 <CalendarIcon className="h-4 w-4 mr-2" />
                 {selectedDate ? format(selectedDate, "MMM d") : "Date"}
               </Button>
@@ -215,6 +240,19 @@ function ReflectionCard({ entry, onPlay }: { entry: JournalEntry; onPlay: () => 
     }
   });
 
+  const handleDelete = async () => {
+    if (confirm("Are you sure you want to delete this reflection?")) {
+      try {
+        await deleteJournalEntryAction(entry.id);
+        queryClient.invalidateQueries({ queryKey: queryKeys.journal.all });
+        setIsOpen(false);
+        toast.success("Reflection deleted.");
+      } catch (e) {
+        toast.error("Failed to delete.");
+      }
+    }
+  };
+
   const moodData = entry.mood ? MOOD_ICONS[entry.mood] : null;
   const MoodIcon = moodData?.icon;
 
@@ -247,7 +285,7 @@ function ReflectionCard({ entry, onPlay }: { entry: JournalEntry; onPlay: () => 
               )}
             </div>
           </CardHeader>
-          <CardContent className="p-5 pt-0 flex-1 flex flex-col space-y-3 min-h-0">
+          <CardContent className="p-5 pt-0 flex-1 flex flex-col space-y-3 min-h-0 overflow-hidden">
             <div className="text-xs text-foreground/70 leading-relaxed line-clamp-4 font-serif italic prose prose-invert prose-xs">
                <ReactMarkdown remarkPlugins={[remarkGfm]}>
                   {entry.content}
@@ -269,7 +307,7 @@ function ReflectionCard({ entry, onPlay }: { entry: JournalEntry; onPlay: () => 
         setIsOpen(val);
         if (!val) setIsEditing(false);
       }}>
-        <DialogContent className="max-w-[90vw] w-full h-[95vh] p-0 overflow-hidden glass border-white/10 shadow-2xl flex flex-col">
+        <DialogContent className="max-w-[90vw] min-w-[90vw] h-[95vh] p-0 overflow-hidden glass border-white/10 shadow-2xl flex flex-col">
           <DialogHeader className="p-8 border-b border-white/5 bg-background/40 shrink-0">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-6">
@@ -315,7 +353,7 @@ function ReflectionCard({ entry, onPlay }: { entry: JournalEntry; onPlay: () => 
                 <div className="h-8 w-px bg-white/10" />
                 {isEditing ? (
                   <div className="flex gap-2">
-                    <Button variant="ghost" size="sm" onClick={() => { setIsEditing(false); setEditContent(entry.content); setEditMood(entry.mood || ""); }} className="rounded-xl h-11 px-6">
+                    <Button variant="ghost" size="sm" onClick={() => { setIsEditing(false); setEditContent(entry.content); setEditMood(entry.mood || ""); }} className="rounded-xl h-11 px-6 text-muted-foreground hover:text-foreground">
                       <X className="h-4 w-4 mr-2" /> Cancel
                     </Button>
                     <Button onClick={() => updateMutation.mutate({ content: editContent, mood: editMood })} disabled={updateMutation.isPending} className="rounded-xl h-11 px-8 shadow-xl shadow-primary/20">
@@ -324,9 +362,18 @@ function ReflectionCard({ entry, onPlay }: { entry: JournalEntry; onPlay: () => 
                     </Button>
                   </div>
                 ) : (
-                  <Button variant="secondary" onClick={() => setIsEditing(true)} className="rounded-xl h-11 px-8">
-                    <Edit3 className="h-4 w-4 mr-2" /> Edit Reflection
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button 
+                      variant="ghost" 
+                      onClick={handleDelete}
+                      className="rounded-xl h-11 px-4 text-destructive hover:bg-destructive/10"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                    <Button variant="secondary" onClick={() => setIsEditing(true)} className="rounded-xl h-11 px-8">
+                      <Edit3 className="h-4 w-4 mr-2" /> Edit Reflection
+                    </Button>
+                  </div>
                 )}
               </div>
             </div>

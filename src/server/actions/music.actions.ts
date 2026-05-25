@@ -9,6 +9,10 @@ export async function searchSongsAction(query: string) {
   return musicProvider.searchSongs(query);
 }
 
+export async function getLyricsAction(id: string) {
+  return musicProvider.getLyrics(id);
+}
+
 export async function getSongDetailsAction(id: string) {
   return musicProvider.getSong(id);
 }

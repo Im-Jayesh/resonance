@@ -13,4 +13,7 @@ export const queryKeys = {
     all: ["ai"] as const,
     analysis: (songId: string) => [...queryKeys.ai.all, "analysis", songId] as const,
   },
+  playlists: {
+    all: ["playlists"] as const,
+  },
 };
