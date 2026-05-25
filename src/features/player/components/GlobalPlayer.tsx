@@ -178,15 +178,14 @@ export function GlobalPlayer() {
     }
   };
 
-  const handleSliderChange = (value: number[]) => {
-    if (!Array.isArray(value) || value.length === 0) return;
+  const handleSliderChange = (value: number | readonly number[]) => {
+    const val = Array.isArray(value) ? value[0] : value;
     setIsDragging(true);
-    const newProgress = value[0];
-    if (typeof newProgress !== "number" || !isFinite(newProgress)) return;
+    if (typeof val !== "number" || !isFinite(val)) return;
     
-    setProgress(newProgress);
+    setProgress(val);
     if (isFinite(duration) && duration > 0) {
-      setCurrentTime((newProgress / 100) * duration);
+      setCurrentTime((val / 100) * duration);
     }
   };
 
@@ -198,18 +197,16 @@ export function GlobalPlayer() {
         setCurrentTime(targetTime);
       }
     }
-    // Delay resetting isDragging to avoid immediate override by handleTimeUpdate
     setTimeout(() => {
       if (mountedRef.current) setIsDragging(false);
     }, 100);
   };
 
-  const handleVolumeChange = (value: number[]) => {
-    if (!Array.isArray(value) || value.length === 0) return;
-    const rawValue = value[0];
-    if (typeof rawValue !== "number" || !isFinite(rawValue)) return;
+  const handleVolumeChange = (value: number | readonly number[]) => {
+    const val = Array.isArray(value) ? value[0] : value;
+    if (typeof val !== "number" || !isFinite(val)) return;
     
-    const clampedValue = Math.min(Math.max(rawValue, 0), 100);
+    const clampedValue = Math.min(Math.max(val, 0), 100);
     const newVolume = clampedValue / 100;
     setVolume(newVolume);
     if (audioRef.current) {
@@ -302,7 +299,7 @@ export function GlobalPlayer() {
               step={0.1} 
               className="w-full" 
               onValueChange={handleSliderChange}
-              onValueCommit={handleSliderCommit}
+              onValueCommitted={handleSliderCommit}
             />
             <span className="text-[10px] text-muted-foreground min-w-[30px]">{formatTime(duration)}</span>
           </div>
@@ -389,7 +386,7 @@ export function GlobalPlayer() {
                       step={0.1} 
                       className="w-full h-3" 
                       onValueChange={handleSliderChange}
-                      onValueCommit={handleSliderCommit}
+                      onValueCommitted={handleSliderCommit}
                     />
                     <div className="flex justify-between text-xs font-bold opacity-30 uppercase tracking-[0.2em]">
                       <span>{formatTime(currentTime)}</span>

@@ -173,7 +173,6 @@ export function ReflectionsList() {
                 mode="single"
                 selected={selectedDate}
                 onSelect={setSelectedDate}
-                initialFocus
               />
               {selectedDate && (
                 <div className="p-2 border-t border-white/5">
@@ -325,7 +324,7 @@ function ReflectionCard({ entry, onPlay }: { entry: JournalEntry; onPlay: () => 
                   <div className="flex items-center gap-3 mb-1">
                     <DialogTitle className="text-3xl font-bold tracking-tight">{entry.song.title}</DialogTitle>
                     {isEditing ? (
-                      <ToggleGroup type="single" value={editMood} onValueChange={(v) => setEditMood(v || "")} className="bg-white/5 rounded-full p-1 gap-1">
+                      <ToggleGroup type="single" value={editMood ? [editMood] : []} onValueChange={(v: string[]) => setEditMood(v[0] || "")} className="bg-white/5 rounded-full p-1 gap-1">
                          {Object.keys(MOOD_ICONS).map((m) => {
                            const Icon = MOOD_ICONS[m].icon;
                            return (

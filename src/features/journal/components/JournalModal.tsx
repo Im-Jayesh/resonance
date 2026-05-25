@@ -300,7 +300,7 @@ export function JournalModal({ song, trigger }: { song: SongMetadata; trigger?: 
             <div className="h-4 w-px bg-white/10" />
             <div className="flex items-center gap-3">
                <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">Mood</span>
-               <ToggleGroup type="single" value={mood} onValueChange={(val) => setMood(val || "")} className="gap-1">
+               <ToggleGroup type="single" value={mood ? [mood] : []} onValueChange={(val: string[]) => setMood(val[0] || "")} className="gap-1">
                  {MOODS.map((m) => (
                    <ToggleGroupItem key={m.value} value={m.value} className="h-8 w-8 rounded-full p-0 border-none data-[state=on]:bg-primary/20" title={m.label}>
                      <m.icon className="h-4 w-4" />

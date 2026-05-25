@@ -28,11 +28,7 @@ function ToggleGroup({
   orientation = "horizontal",
   children,
   ...props
-}: ToggleGroupPrimitive.Props &
-  VariantProps<typeof toggleVariants> & {
-    spacing?: number
-    orientation?: "horizontal" | "vertical"
-  }) {
+}: any) {
   return (
     <ToggleGroupPrimitive
       data-slot="toggle-group"

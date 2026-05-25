@@ -11,14 +11,14 @@ function Popover({ ...props }: PopoverPrimitive.Root.Props) {
 }
 
 const PopoverTrigger = React.forwardRef<
-  HTMLElement,
+  HTMLButtonElement,
   PopoverPrimitive.Trigger.Props & { asChild?: boolean }
 >(({ asChild = false, ...props }, ref) => {
   return (
     <PopoverPrimitive.Trigger
       data-slot="popover-trigger"
       {...props}
-      ref={ref}
+      ref={ref as any}
       render={asChild ? <Slot /> : undefined}
     />
   )
