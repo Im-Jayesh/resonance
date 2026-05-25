@@ -1,0 +1,182 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                String             @id @default(cuid())
+  name              String?
+  email             String?            @unique
+  emailVerified     DateTime?
+  image             String?
+  password          String?
+  role              UserRole           @default(USER)
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  accounts          Account[]
+  journalEntries    JournalEntry[]
+  passwordResetOtps PasswordResetOtp[]
+  playbackHistory   PlaybackHistory[]
+  playlists         Playlist[]
+  sessions          Session[]
+  userSongRelations UserSongRelation[]
+  verificationOtps  VerificationOtp[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationOtp {
+  id        String   @id @default(cuid())
+  email     String
+  code      String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [email], references: [email], onDelete: Cascade)
+
+  @@index([email])
+}
+
+model PasswordResetOtp {
+  id        String   @id @default(cuid())
+  email     String
+  code      String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [email], references: [email], onDelete: Cascade)
+
+  @@index([email])
+}
+
+model Song {
+  id              String             @id @default(cuid())
+  externalId      String             @unique
+  title           String
+  artist          String
+  album           String?
+  coverArt        String?
+  previewUrl      String?
+  duration        Int?
+  genre           String?
+  releaseDate     String?
+  journalEntries  JournalEntry[]
+  playbackHistory PlaybackHistory[]
+  meaning         SongMeaning?
+  snapshots       SongSnapshot[]
+  relations       UserSongRelation[]
+}
+
+model SongSnapshot {
+  id        String   @id @default(cuid())
+  songId    String
+  lyrics    String?
+  metadata  Json?
+  createdAt DateTime @default(now())
+  song      Song     @relation(fields: [songId], references: [id], onDelete: Cascade)
+}
+
+model SongMeaning {
+  id              String   @id @default(cuid())
+  songId          String   @unique
+  summary         String
+  emotionalThemes Json?
+  prompts         Json?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  song            Song     @relation(fields: [songId], references: [id], onDelete: Cascade)
+}
+
+model JournalEntry {
+  id        String   @id @default(cuid())
+  userId    String
+  songId    String
+  content   String
+  mood      String?
+  tags      Json?
+  isPrivate Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  song      Song     @relation(fields: [songId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([songId])
+}
+
+model UserSongRelation {
+  id         String    @id @default(cuid())
+  userId     String
+  songId     String
+  isLiked    Boolean   @default(false)
+  playCount  Int       @default(0)
+  lastPlayed DateTime?
+  song       Song      @relation(fields: [songId], references: [id], onDelete: Cascade)
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, songId])
+}
+
+model Playlist {
+  id          String         @id @default(cuid())
+  userId      String
+  name        String
+  description String?
+  isPublic    Boolean        @default(false)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  songs       PlaylistSong[]
+}
+
+model PlaylistSong {
+  id         String   @id @default(cuid())
+  playlistId String
+  songId     String
+  order      Int
+  playlist   Playlist @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+
+  @@index([playlistId])
+}
+
+model PlaybackHistory {
+  id       String   @id @default(cuid())
+  userId   String
+  songId   String
+  playedAt DateTime @default(now())
+  song     Song     @relation(fields: [songId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}
