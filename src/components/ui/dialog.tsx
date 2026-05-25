@@ -13,14 +13,14 @@ function Dialog({ ...props }: DialogPrimitive.Root.Props) {
 }
 
 const DialogTrigger = React.forwardRef<
-  HTMLElement,
+  HTMLButtonElement,
   DialogPrimitive.Trigger.Props & { asChild?: boolean }
 >(({ asChild = false, ...props }, ref) => {
   return (
     <DialogPrimitive.Trigger
       data-slot="dialog-trigger"
       {...props}
-      ref={ref}
+      ref={ref as any}
       render={asChild ? <Slot /> : undefined}
     />
   )
