@@ -474,7 +474,7 @@ function ReflectionCard({ entry, onPlay }: { entry: JournalEntry; onPlay: () => 
                   </div>
 
                   <div className="flex items-center gap-0.5 px-0.5 border-r border-zinc-200 dark:border-zinc-800">
-                    <Select onValueChange={(val) => editor.chain().focus().setFontFamily(val).run()}>
+                    <Select onValueChange={(val) => editor.chain().focus().setFontFamily(val as string).run()}>
                       <SelectTrigger className="w-[70px] h-7 bg-transparent border-none text-[11px] font-medium text-zinc-600 dark:text-zinc-400 focus:ring-0 px-1">
                         <Type className="h-3 w-3 mr-1" />
                       </SelectTrigger>
@@ -483,7 +483,7 @@ function ReflectionCard({ entry, onPlay }: { entry: JournalEntry; onPlay: () => 
                       </SelectContent>
                     </Select>
 
-                    <Select onValueChange={(val) => editor.chain().focus().setFontSize(val).run()}>
+                    <Select onValueChange={(val) => editor.chain().focus().setFontSize(val as string).run()}>
                       <SelectTrigger className="w-[65px] h-7 bg-transparent border-none text-[11px] font-medium text-zinc-600 dark:text-zinc-400 focus:ring-0 px-1">
                         <CaseUpper className="h-3 w-3 mr-1" />
                       </SelectTrigger>
