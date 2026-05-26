@@ -5,6 +5,8 @@ export class MusicApiAdapter implements MusicProvider {
   private instances = [
     "https://saavn.dev",
     "https://saavn.sumit.co",
+    "https://jiosaavn-api-v3.vercel.app",
+    "https://jiosaavn-api-privatecvc2.vercel.app",
     "https://jiosaavn-api.vercel.app",
     "https://jiosaavn-api-sigma-six.vercel.app",
     "https://jiosaavn-apix.arcadopredator.workers.dev"
@@ -47,15 +49,16 @@ export class MusicApiAdapter implements MusicProvider {
     
     throw new Error("All Music API instances failed or timed out.");
   }
-private extractArtist(item: any): string {
-  if (item.primaryArtists) return item.primaryArtists;
-  if (item.singers) return item.singers;
-  if (item.artist) return item.artist;
-  if (Array.isArray(item.artists?.primary)) {
-    return item.artists.primary.map((a: any) => a.name).join(", ");
+
+  private extractArtist(item: any): string {
+    if (item.primaryArtists) return item.primaryArtists;
+    if (item.singers) return item.singers;
+    if (item.artist) return item.artist;
+    if (Array.isArray(item.artists?.primary)) {
+      return item.artists.primary.map((a: any) => a.name).join(", ");
+    }
+    return "Unknown Artist";
   }
-  return "Unknown Artist";
-}
 
   async searchSongs(query: string): Promise<SongMetadata[]> {
     try {
@@ -122,6 +125,7 @@ private extractArtist(item: any): string {
        const res = await fetch(`https://itunes.apple.com/lookup?id=${trackId}`);
        const data = await res.json();
        const item = data.results[0];
+       if (!item) throw new Error("iTunes track not found");
        return {
          id,
          title: item.trackName,
@@ -139,29 +143,83 @@ private extractArtist(item: any): string {
     return {
       id: item.id,
       title: item.name,
-      artist: item.primaryArtists,
-      album: item.album?.name,
+      artist: this.extractArtist(item),
+      album: item.album?.name || item.album,
       coverArt: this.extractImageUrl(item),
       previewUrl: this.extractDownloadUrl(item),
     };
   }
 
-  async getLyrics(id: string): Promise<string> {
+  async getLyrics(id: string, title?: string, artist?: string): Promise<string> {
+    let songMetadata: { title: string; artist: string } | null = null;
+    
+    if (title && artist) {
+      songMetadata = { title, artist };
+    }
+
     try {
-      if (id.startsWith("itunes-")) {
-        return "Lyrics not available for preview tracks.";
+      // 1. Try primary JioSaavn lyrics for non-iTunes tracks
+      if (!id.startsWith("itunes-")) {
+        try {
+          const data = await this.fetchWithRetry(`/api/songs/${id}/lyrics`);
+          const lyrics = data.data?.lyrics || data.lyrics;
+          if (lyrics && lyrics !== "Lyrics not available") {
+            return this.cleanLyrics(lyrics);
+          }
+        } catch (e) {
+          console.warn("⚠️ Music API: JioSaavn lyrics lookup failed.");
+        }
       }
 
-      console.log(`🎵 Music API: Fetching plain-text lyrics for song ID: ${id}`);
-      const data = await this.fetchWithRetry(`/api/songs/${id}/lyrics`);
-      
-      // The JioSaavn API returns { success: true, data: { lyrics: "..." } }
-      // or sometimes just { lyrics: "..." } depending on the instance
-      return data.data?.lyrics || data.lyrics || "Lyrics not available for this track.";
+      // 2. If JioSaavn failed or skipped, we need metadata for other fallbacks
+      if (!songMetadata) {
+        try {
+          const meta = await this.getSong(id);
+          songMetadata = { title: meta.title, artist: meta.artist };
+        } catch (e) {
+          console.warn("⚠️ Music API: Could not fetch song metadata for lyrics fallback.");
+        }
+      }
+
+      // 3. Fallback: Try LRCLIB
+      if (songMetadata) {
+        console.log(`🎵 Music API: Trying LRCLIB fallback for ${songMetadata.title}`);
+        const lrclibUrl = `https://lrclib.net/api/get?artist_name=${encodeURIComponent(songMetadata.artist)}&track_name=${encodeURIComponent(songMetadata.title)}`;
+        const res = await fetch(lrclibUrl);
+        if (res.ok) {
+          const data = await res.json();
+          const lyrics = data.plainLyrics || data.syncedLyrics;
+          if (lyrics) return this.cleanLyrics(lyrics);
+        }
+      }
+
+      // 4. Last Resort: lyrics.ovh
+      if (songMetadata) {
+        const ovhUrl = `https://api.lyrics.ovh/v1/${encodeURIComponent(songMetadata.artist)}/${encodeURIComponent(songMetadata.title)}`;
+        const ovhRes = await fetch(ovhUrl);
+        if (ovhRes.ok) {
+          const ovhData = await ovhRes.json();
+          if (ovhData.lyrics) return ovhData.lyrics;
+        }
+      }
+
+      return "Lyrics not available for this track.";
     } catch (error) {
-      console.warn("❌ Music API: Failed to fetch lyrics from all instances.");
+      console.error("❌ Music API: All lyrics sources failed:", error);
       return "Lyrics not available.";
     }
+  }
+
+  private cleanLyrics(lyrics: string): string {
+    return lyrics
+      .replace(/<br\s*\/?>/gi, "\n") // HTML breaks
+      .replace(/\[\d{2}:\d{2}\.\d{2}\]/g, "") // LRC timestamps
+      .replace(/&amp;/g, "&")
+      .replace(/&lt;/g, "<")
+      .replace(/&gt;/g, ">")
+      .replace(/&quot;/g, '"')
+      .replace(/&#039;/g, "'")
+      .trim();
   }
 
   async getStreamUrl(id: string): Promise<string> {

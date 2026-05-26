@@ -9,8 +9,8 @@ export async function searchSongsAction(query: string) {
   return musicProvider.searchSongs(query);
 }
 
-export async function getLyricsAction(id: string) {
-  return musicProvider.getLyrics(id);
+export async function getLyricsAction(id: string, title?: string, artist?: string) {
+  return musicProvider.getLyrics(id, title, artist);
 }
 
 export async function getSongDetailsAction(id: string) {

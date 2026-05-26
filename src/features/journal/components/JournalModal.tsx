@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { SongMetadata } from "@/lib/music/types";
 import { createJournalEntryAction } from "@/server/actions/journal.actions";
 import { getSongMeaningAction, askAiAction } from "@/server/actions/ai.actions";
+import { getLyricsAction } from "@/server/actions/music.actions";
 import { 
   Sparkles, PenLine, Loader2, MessageSquare, Send, Bot, X, Info, HelpCircle, 
   Smile, Frown, Zap, Cloud, Heart, Ghost, 
@@ -157,7 +158,9 @@ export function JournalModal({ song, trigger }: { song: SongMetadata; trigger?: 
     setMessages(prev => [...prev, { role: "user", content: prompt }]);
 
     try {
-      const result = await getSongMeaningAction(song.id, song.title, song.artist) as unknown as AIAnalysis;
+      // Fetch lyrics to provide context for AI analysis
+      const lyrics = await getLyricsAction(song.id, song.title, song.artist);
+      const result = await getSongMeaningAction(song.id, song.title, song.artist, lyrics) as unknown as AIAnalysis;
       const content = type === "lyrics" ? result.summary : `Themes: ${result.emotionalThemes.join(", ")}. \n\nReflections: ${result.prompts.join("\n")}`;
       setMessages(prev => [...prev, { role: "ai", content }]);
     } catch (e: unknown) {

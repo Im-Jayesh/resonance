@@ -59,8 +59,8 @@ export function GlobalPlayer() {
     if (!currentSong) return;
     setIsLoadingLyrics(true);
     try {
-      // Direct call to music provider for plain-text lyrics
-      const lyrics = await getLyricsAction(currentSong.id);
+      // Pass metadata along with ID to allow fallbacks even if JioSaavn is down
+      const lyrics = await getLyricsAction(currentSong.id, currentSong.title, currentSong.artist);
       setLyricsRaw(lyrics);
     } catch {
       setLyricsRaw("Lyrics not available for this track.");
@@ -434,8 +434,8 @@ export function GlobalPlayer() {
                  <X className="h-4 w-4" />
                </Button>
             </div>
-            <ScrollArea className="flex-1">
-               <div className="p-8 pb-12">
+            <ScrollArea className="flex-1 h-full overflow-y-auto">
+               <div className="p-8 pb-12 min-h-full">
                  {isLoadingLyrics ? (
                    <div className="space-y-6 py-10">
                      {[1,2,3,4,5].map(i => (
@@ -443,7 +443,7 @@ export function GlobalPlayer() {
                      ))}
                    </div>
                  ) : (
-                   <p className="text-lg md:text-xl font-medium leading-relaxed text-foreground/90 font-serif italic whitespace-pre-wrap">
+                   <p className="text-lg md:text-xl font-medium leading-relaxed text-foreground/90 font-serif italic whitespace-pre-wrap break-words">
                      {lyricsRaw || "Lyrics not available for this track."}
                    </p>
                  )}
