@@ -37,8 +37,9 @@ export default async function DashboardPage() {
         </div>
       </section>
 
-      <section className="space-y-6 md:space-y-8 bg-secondary/10 p-6 md:p-12 rounded-[2rem] md:rounded-[2.5rem] border border-white/5">
-        <div className="flex items-center gap-3 mb-2">
+      {/* Reduced mobile padding (p-3) and radius (rounded-2xl) to give SongSearch more width on small screens */}
+      <section className="space-y-6 md:space-y-8 bg-secondary/10 p-3 sm:p-6 md:p-12 rounded-2xl md:rounded-[2.5rem] border border-white/5 overflow-hidden">
+        <div className="flex items-center gap-3 mb-2 px-1 md:px-0">
            <div className="p-2 rounded-xl bg-primary/10">
              <Music className="h-5 w-5 text-primary" />
            </div>
@@ -61,19 +62,23 @@ export default async function DashboardPage() {
             </div>
           ) : (
             recentEntries.slice(0, 3).map((entry) => (
-              <Card key={entry.id} className="glass border-white/5 hover:border-white/10 transition-all group rounded-3xl overflow-hidden shadow-lg">
-                <CardHeader className="flex flex-row items-center gap-4 pb-4">
+              <Card key={entry.id} className="glass border-white/5 hover:border-white/10 transition-all group rounded-3xl overflow-hidden shadow-lg flex flex-col h-full">
+                <CardHeader className="flex flex-row items-center gap-4 pb-4 shrink-0">
                   <div className="h-12 w-12 rounded-xl bg-secondary overflow-hidden shrink-0 shadow-md">
                     {entry.song.coverArt && <img src={entry.song.coverArt} alt={entry.song.title} className="h-full w-full object-cover group-hover:scale-110 transition-transform duration-500" />}
                   </div>
-                  <div className="flex flex-col truncate">
-                    <CardTitle className="text-sm font-bold truncate">{entry.song.title}</CardTitle>
-                    <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">{entry.song.artist}</span>
+                  <div className="flex flex-col min-w-0">
+                    <CardTitle className="text-sm font-bold truncate pr-2">{entry.song.title}</CardTitle>
+                    <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider truncate">{entry.song.artist}</span>
                   </div>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <p className="text-sm line-clamp-3 italic text-foreground/80 font-serif leading-relaxed">&quot;{entry.content}&quot;</p>
-                  <div className="flex justify-end">
+                <CardContent className="space-y-4 flex-1 flex flex-col justify-between">
+                  {/* Safely rendering HTML with line-clamp so it truncates perfectly */}
+                  <div 
+                    className="text-sm line-clamp-3 italic text-foreground/80 font-serif leading-relaxed prose prose-invert prose-sm"
+                    dangerouslySetInnerHTML={{ __html: entry.content }}
+                  />
+                  <div className="flex justify-end pt-2">
                     <span className="text-[9px] font-bold text-muted-foreground/60 uppercase tracking-widest">
                       {formatDistanceToNow(new Date(entry.createdAt), { addSuffix: true })}
                     </span>

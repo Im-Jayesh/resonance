@@ -23,55 +23,79 @@ export function SongSearch() {
   });
 
   return (
-    <div className="space-y-6 w-full max-w-4xl mx-auto">
+    <div className="space-y-4 w-full max-w-4xl mx-auto px-1 sm:px-0">
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/70" />
         <Input
           placeholder="Search for a song, artist, or album..."
-          className="pl-10 h-12 bg-secondary/50 border-white/5"
+          className="pl-9 h-11 bg-secondary/50 border-white/5 rounded-xl text-sm focus-visible:ring-zinc-500"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
       </div>
 
-      <div className="grid gap-3 md:gap-4">
-        {isLoading && <p className="text-center text-muted-foreground animate-pulse">Searching for harmony...</p>}
+      <div className="grid gap-2 sm:gap-3">
+        {isLoading && (
+          <p className="text-center text-xs text-muted-foreground py-2 animate-pulse">
+            Searching for harmony...
+          </p>
+        )}
+        
         {songs?.map((song) => (
           <motion.div
             key={song.id}
-            initial={{ opacity: 0, x: -10 }}
+            initial={{ opacity: 0, x: -5 }}
             animate={{ opacity: 1, x: 0 }}
-            className="flex flex-col sm:flex-row sm:items-center justify-between p-3 md:p-4 rounded-2xl glass border-white/5 hover:bg-white/5 transition-colors group gap-4"
+            className="flex flex-col sm:flex-row sm:items-center justify-between p-2.5 sm:p-4 rounded-xl glass border-white/5 hover:bg-white/5 transition-all group gap-3 sm:gap-4"
           >
-            <div className="flex items-center gap-4 flex-1">
-              <div className="h-14 w-14 md:h-16 md:w-16 rounded-xl overflow-hidden bg-secondary relative shrink-0 shadow-lg">
-                {song.coverArt && <img src={song.coverArt} alt={song.title} className="h-full w-full object-cover" />}
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  className="absolute inset-0 opacity-0 md:group-hover:opacity-100 bg-black/40 text-white rounded-none transition-opacity"
-                  onClick={() => setCurrentSong(song)}
-                >
-                  <Play className="h-6 w-6 fill-current" />
-                </Button>
+            {/* Left Side: Art & Metadata container (always row on all viewports) */}
+            <div className="flex items-center gap-3 flex-1 min-w-0">
+              <div 
+                className="h-11 w-11 sm:h-16 sm:w-16 rounded-lg sm:rounded-xl overflow-hidden bg-secondary relative shrink-0 shadow-md cursor-pointer"
+                onClick={() => setCurrentSong(song)}
+              >
+                {song.coverArt && (
+                  <img src={song.coverArt} alt={song.title} className="h-full w-full object-cover" />
+                )}
+                {/* Desktop Hover State Overlay */}
+                <div className="absolute inset-0 hidden md:flex items-center justify-center opacity-0 group-hover:opacity-100 bg-black/40 transition-opacity">
+                  <Play className="h-5 w-5 fill-white text-white" />
+                </div>
               </div>
-              <div className="flex flex-col min-w-0">
-                <span className="font-semibold text-base md:text-lg truncate pr-4">{song.title}</span>
-                <span className="text-xs md:text-sm text-muted-foreground truncate">{song.artist}</span>
+
+              <div className="flex flex-col min-w-0 flex-1">
+                <span className="font-bold text-sm sm:text-base text-foreground truncate pr-1">
+                  {song.title}
+                </span>
+                <span className="text-[11px] sm:text-xs text-muted-foreground truncate mt-0.5">
+                  {song.artist}
+                </span>
               </div>
+
+              {/* Mobile Only: Inline play trigger button targets */}
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-8 w-8 rounded-lg md:hidden shrink-0 border border-white/5 bg-secondary/30"
+                onClick={() => setCurrentSong(song)}
+              >
+                <Play className="h-3 w-3 fill-current text-foreground" />
+              </Button>
             </div>
-            <div className="flex items-center gap-2 w-full sm:w-auto">
+
+            {/* Right Side: Grid split actions (optimized side-by-side layouts for high density devices) */}
+            <div className="flex items-center gap-2 w-full sm:w-auto shrink-0 border-t border-white/5 sm:border-none pt-2.5 sm:pt-0">
               <div className="flex-1 sm:flex-none">
                 <AddToPlaylistModal song={song} trigger={
-                   <Button variant="outline" className="w-full h-10 md:h-11 rounded-xl border-white/10 gap-2 text-xs md:text-sm">
-                      Record to Playlist
+                   <Button variant="outline" className="w-full h-8 sm:h-10 rounded-lg border-white/10 text-[11px] sm:text-xs px-2.5">
+                      Playlist
                    </Button>
                 } />
               </div>
               <div className="flex-1 sm:flex-none">
                 <JournalModal song={song} trigger={
-                  <Button className="w-full h-10 md:h-11 rounded-xl shadow-lg shadow-primary/20 gap-2 text-xs md:text-sm">
-                    <PenLine className="h-3.5 w-3.5" /> Journal
+                  <Button className="w-full h-8 sm:h-10 rounded-lg shadow-md shadow-primary/10 gap-1 text-[11px] sm:text-xs px-3">
+                    <PenLine className="h-3 w-3" /> Journal
                   </Button>
                 } />
               </div>
