@@ -443,7 +443,7 @@ function ReflectionCard({ entry, onPlay }: { entry: JournalEntry; onPlay: () => 
 
           <div className="flex-1 flex flex-col min-w-0 bg-white dark:bg-zinc-950 relative overflow-hidden">
             {isEditing && editor && (
-              <BubbleMenu editor={editor} tippyOptions={{ duration: 100 }}>
+              <BubbleMenu editor={editor}>
                 <motion.div 
                   initial={{ opacity: 0, scale: 0.98, y: 4 }}
                   animate={{ opacity: 1, scale: 1, y: 0 }}

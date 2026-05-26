@@ -318,7 +318,7 @@ export function JournalModal({ song, trigger }: { song: SongMetadata; trigger?: 
 
         <div className="flex-1 flex overflow-hidden min-h-0 relative bg-white dark:bg-zinc-950">
           {editor && (
-            <BubbleMenu editor={editor} tippyOptions={{ duration: 100 }}>
+            <BubbleMenu editor={editor}>
               <motion.div 
                 initial={{ opacity: 0, scale: 0.98, y: 4 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
