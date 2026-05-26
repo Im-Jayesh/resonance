@@ -7,38 +7,17 @@ const aiProvider = new GeminiAdapter();
 
 export async function getSongMeaningAction(songId: string, title: string, artist: string, lyrics?: string) {
   try {
-    const song = await prisma.song.upsert({
-      where: { externalId: songId },
-      update: { title, artist },
-      create: {
-        externalId: songId,
-        title,
-        artist,
-      },
-    });
-
-    const existing = await prisma.songMeaning.findUnique({ where: { songId: song.id } });
-    if (existing) return existing;
-
     const analysis = await aiProvider.analyzeSong(title, artist, lyrics);
-
-    return await prisma.songMeaning.create({
-      data: {
-        songId: song.id,
-        summary: analysis.summary,
-        emotionalThemes: analysis.emotionalThemes,
-        prompts: analysis.journalingPrompts,
-      },
-    });
+    return analysis;
   } catch (error: any) {
-    console.error("AI Meaning Action Failed:", error);
+    console.error("AI Analysis Action Failed:", error);
     throw new Error(error.message);
   }
 }
 
-export async function askAiAction(songId: string, title: string, artist: string, question: string) {
+export async function askAiAction(songId: string, title: string, artist: string, question: string, lyrics?: string) {
   try {
-    const response = await aiProvider.askQuestion(title, artist, question);
+    const response = await aiProvider.askQuestion(title, artist, question, lyrics);
     return { response };
   } catch (error: any) {
     console.error("AI Ask Action Failed:", error);

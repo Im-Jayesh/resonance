@@ -16,7 +16,8 @@ import {
   ChevronDown,
   LayoutList,
   X,
-  Music
+  Music,
+  Loader2
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useEffect, useRef, useState, useCallback } from "react";
@@ -59,13 +60,18 @@ export function GlobalPlayer() {
     if (!currentSong) return;
     setIsLoadingLyrics(true);
     try {
-      // Pass metadata along with ID to allow fallbacks even if JioSaavn is down
       const lyrics = await getLyricsAction(currentSong.id, currentSong.title, currentSong.artist);
-      setLyricsRaw(lyrics);
+      if (mountedRef.current) {
+        setLyricsRaw(lyrics);
+      }
     } catch {
-      setLyricsRaw("Lyrics not available for this track.");
+      if (mountedRef.current) {
+        setLyricsRaw("Lyrics not available for this track.");
+      }
     } finally {
-      setIsLoadingLyrics(false);
+      if (mountedRef.current) {
+        setIsLoadingLyrics(false);
+      }
     }
   }, [currentSong]);
 
@@ -81,16 +87,12 @@ export function GlobalPlayer() {
       if (isPlaying) {
          audioRef.current.play().catch(() => console.warn("Playback prevented"));
       }
+      // Reset and Prefetch lyrics automatically in the background
       setLyricsRaw(null);
+      fetchLyrics();
     }
-  }, [currentSong, isPlaying]);
-
-  useEffect(() => {
-    if (showLyrics && currentSong && !lyricsRaw && !isLoadingLyrics) {
-      const timer = setTimeout(() => fetchLyrics(), 0);
-      return () => clearTimeout(timer);
-    }
-  }, [showLyrics, currentSong, lyricsRaw, isLoadingLyrics, fetchLyrics]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentSong, fetchLyrics]);
 
   useEffect(() => {
     if (audioRef.current) {
@@ -435,17 +437,25 @@ export function GlobalPlayer() {
                </Button>
             </div>
             <ScrollArea className="flex-1 h-full overflow-y-auto">
-               <div className="p-8 pb-12 min-h-full">
+               <div className="p-8 pb-12 min-h-full flex flex-col">
                  {isLoadingLyrics ? (
                    <div className="space-y-6 py-10">
+                     <div className="flex items-center justify-center gap-3 text-sm text-muted-foreground">
+                        <Loader2 className="h-4 w-4 animate-spin" /> Fetching lyrics...
+                     </div>
                      {[1,2,3,4,5].map(i => (
                         <div key={i} className={cn("h-4 bg-white/5 animate-pulse rounded-full", i % 2 === 0 ? "w-full" : "w-3/4")} />
                      ))}
                    </div>
-                 ) : (
+                 ) : lyricsRaw ? (
                    <p className="text-lg md:text-xl font-medium leading-relaxed text-foreground/90 font-serif italic whitespace-pre-wrap break-words">
-                     {lyricsRaw || "Lyrics not available for this track."}
+                     {lyricsRaw}
                    </p>
+                 ) : (
+                   <div className="flex-1 flex flex-col items-center justify-center text-center space-y-4 py-12 opacity-40">
+                     <Music className="h-10 w-10" />
+                     <p className="text-sm font-medium">Lyrics not available</p>
+                   </div>
                  )}
                </div>
             </ScrollArea>

@@ -1,7 +1,8 @@
 export interface SongAnalysis {
   summary: string;
   emotionalThemes: string[];
-  journalingPrompts: string[];
+  prompts: string[];
+  lineByLineExplanation?: string;
 }
 
 export interface AIProvider {

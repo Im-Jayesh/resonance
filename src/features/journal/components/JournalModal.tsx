@@ -24,7 +24,7 @@ import { useEditor, EditorContent } from '@tiptap/react';
 import { BubbleMenu } from '@tiptap/react/menus';
 import StarterKit from '@tiptap/starter-kit';
 import Color from '@tiptap/extension-color';
-import {TextStyle} from '@tiptap/extension-text-style';
+import { TextStyle } from '@tiptap/extension-text-style';
 import UnderlineExtension from '@tiptap/extension-underline';
 import Link from '@tiptap/extension-link';
 import FontFamily from '@tiptap/extension-font-family';
@@ -86,6 +86,7 @@ interface AIAnalysis {
   summary: string;
   emotionalThemes: string[];
   prompts: string[];
+  lineByLineExplanation?: string;
 }
 
 const MOODS = [
@@ -118,6 +119,7 @@ export function JournalModal({ song, trigger }: { song: SongMetadata; trigger?: 
   const [input, setInput] = useState("");
   const [isLoadingAi, setIsLoadingAi] = useState(false);
   const [isEditorEmpty, setIsEditorEmpty] = useState(true);
+  const [lyrics, setLyrics] = useState<string | undefined>();
 
   const chatScrollRef = useRef<HTMLDivElement>(null);
 
@@ -139,10 +141,20 @@ export function JournalModal({ song, trigger }: { song: SongMetadata; trigger?: 
       },
     },
     onUpdate: ({ editor }) => {
-    // This forces React to re-render and check if there is actual text or HTML
-    setIsEditorEmpty(editor.isEmpty);
-  },
+      setIsEditorEmpty(editor.isEmpty);
+    },
   });
+
+  // Pre-fetch lyrics when modal opens
+  useEffect(() => {
+    if (isOpen && !lyrics) {
+      getLyricsAction(song.id, song.title, song.artist)
+        .then(res => {
+          if (res && !res.includes("not available")) setLyrics(res);
+        })
+        .catch(console.error);
+    }
+  }, [isOpen, lyrics, song]);
 
   useEffect(() => {
     if (chatScrollRef.current) {
@@ -153,15 +165,22 @@ export function JournalModal({ song, trigger }: { song: SongMetadata; trigger?: 
   const handleAction = async (type: "lyrics" | "insights") => {
     setIsAiOpen(true);
     setIsLoadingAi(true);
-    const prompt = type === "lyrics" ? "Explain the lyrics of this song." : "Give me some emotional insights and themes for this track.";
+    const prompt = type === "lyrics" ? "Explain the lyrics of this song line-by-line." : "Give me some emotional insights and themes for this track.";
     
     setMessages(prev => [...prev, { role: "user", content: prompt }]);
 
     try {
-      // Fetch lyrics to provide context for AI analysis
-      const lyrics = await getLyricsAction(song.id, song.title, song.artist);
-      const result = await getSongMeaningAction(song.id, song.title, song.artist, lyrics) as unknown as AIAnalysis;
-      const content = type === "lyrics" ? result.summary : `Themes: ${result.emotionalThemes.join(", ")}. \n\nReflections: ${result.prompts.join("\n")}`;
+      // Use pre-fetched lyrics or fetch if not available
+      const contextLyrics = lyrics || await getLyricsAction(song.id, song.title, song.artist);
+      const result = await getSongMeaningAction(song.id, song.title, song.artist, contextLyrics) as unknown as AIAnalysis;
+      
+      let content = "";
+      if (type === "lyrics") {
+        content = result.lineByLineExplanation || result.summary;
+      } else {
+        content = `Themes: ${result.emotionalThemes.join(", ")}. \n\nReflections: ${result.prompts.join("\n")}`;
+      }
+      
       setMessages(prev => [...prev, { role: "ai", content }]);
     } catch (e: unknown) {
       toast.error("AI failed to respond.");
@@ -180,7 +199,8 @@ export function JournalModal({ song, trigger }: { song: SongMetadata; trigger?: 
     setIsLoadingAi(true);
 
     try {
-      const { response } = await askAiAction(song.id, song.title, song.artist, userMsg);
+      const contextLyrics = lyrics || await getLyricsAction(song.id, song.title, song.artist);
+      const { response } = await askAiAction(song.id, song.title, song.artist, userMsg, contextLyrics);
       setMessages(prev => [...prev, { role: "ai", content: response }]);
     } catch (e: unknown) {
       toast.error("AI failed to respond.");
@@ -418,9 +438,9 @@ export function JournalModal({ song, trigger }: { song: SongMetadata; trigger?: 
                 key="ai-sidebar"
                 initial={{ width: 0, opacity: 0 }}
                 animate={{ 
-                  width: window.innerWidth < 768 ? "100%" : 400, 
+                  width: typeof window !== 'undefined' && window.innerWidth < 768 ? "100%" : 400, 
                   opacity: 1,
-                  position: window.innerWidth < 768 ? "absolute" : "relative",
+                  position: typeof window !== 'undefined' && window.innerWidth < 768 ? "absolute" : "relative",
                   zIndex: 50
                 }}
                 exit={{ width: 0, opacity: 0 }}
@@ -510,7 +530,7 @@ export function JournalModal({ song, trigger }: { song: SongMetadata; trigger?: 
           <div className="flex flex-col md:flex-row md:items-center gap-4 md:gap-8">
             <div className="flex items-center gap-3">
                <span className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Mood</span>
-               <ToggleGroup type="single" value={mood ? [mood] : []} onValueChange={(val: string[]) => setMood(val[0] || "")} className="gap-1">
+               <ToggleGroup type="single" value={mood} onValueChange={(val: string) => setMood(val)} className="gap-1">
                  {MOODS.map((m) => (
                    <ToggleGroupItem 
                     key={m.value} 
@@ -523,7 +543,7 @@ export function JournalModal({ song, trigger }: { song: SongMetadata; trigger?: 
                  ))}
                </ToggleGroup>
             </div>
-            <div className="hidden md:block h-5 w-px bg-zinc-200 dark:bg-zinc-800" />
+            <div className="hidden md:block h-5 w-px bg-zinc-200 dark:bg-zinc-800 mx-4" />
             <div className="hidden lg:flex items-center gap-2 opacity-40">
                <div className=" w-1.5 h-1.5 rounded-full bg-zinc-400 dark:bg-zinc-600" />
                <span className=" text-[10px] font-semibold uppercase tracking-wider text-zinc-500">Encrypted</span>

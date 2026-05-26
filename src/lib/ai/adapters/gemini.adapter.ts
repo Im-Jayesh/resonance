@@ -4,25 +4,29 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 
 export class GeminiAdapter implements AIProvider {
   private genAI = new GoogleGenerativeAI(env.GEMINI_API_KEY);
-  // Using the latest flash identifier which is most stable across API versions
+  // Using 1.5-flash as it is faster and sufficient for these tasks
   private model = this.genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
   async analyzeSong(title: string, artist: string, lyrics?: string): Promise<SongAnalysis> {
     console.log(`🤖 AI: Analyzing "${title}" by "${artist}"...`);
+    
     const prompt = `
       Analyze the song "${title}" by "${artist}". 
-      ${lyrics ? `Lyrics: ${lyrics}` : "No lyrics provided, analyze based on general knowledge."}
+      ${lyrics ? `Lyrics: \n${lyrics}` : "No lyrics provided, analyze based on general knowledge."}
 
       Provide:
-      1. A 2-3 sentence summary of the song's meaning and lyrical themes.
+      1. A 2-3 sentence summary of the song's overall meaning.
       2. A list of 3-5 emotional themes (e.g., Nostalgia, Longing).
       3. 3 reflective journaling prompts for a user who loves this song.
+      ${lyrics ? `4. A detailed line-by-line or verse-by-verse breakdown. For each significant line or group of lines, provide its specific meaning in the context of the song. 
+         Format this breakdown as a string with "Line: [lyrics] -> Meaning: [explanation]" pairs separated by newlines.` : ""}
 
-      Format the response as JSON:
+      Format the response as strictly valid JSON:
       {
         "summary": "...",
         "emotionalThemes": ["...", "..."],
-        "journalingPrompts": ["...", "..."]
+        "prompts": ["...", "..."]
+        ${lyrics ? ', "lineByLineExplanation": "Line 1... -> Meaning: ...\\nLine 2..."' : ""}
       }
     `;
 
@@ -31,17 +35,17 @@ export class GeminiAdapter implements AIProvider {
       const text = result.response.text();
       console.log("🤖 AI: Response received");
 
-      const cleanedJson = text.replace(/```json|```/g, "").trim();
+      const cleanedJson = text.replace(/\`\`\`json|\`\`\`/g, "").trim();
       return JSON.parse(cleanedJson);
     } catch (error: any) {
       console.error("🤖 AI Analysis Failed:", error.message);
-      // Fallback to gemini-pro if flash-latest fails
+      // Fallback to gemini-pro if flash fails
       if (error.message.includes("404") || error.message.includes("not found")) {
-         console.log("🤖 AI: Attempting fallback model gemini-pro...");
-         const fallbackModel = this.genAI.getGenerativeModel({ model: "gemini-pro" });
+         console.log("🤖 AI: Attempting fallback model gemini-2.5-pro...");
+         const fallbackModel = this.genAI.getGenerativeModel({ model: "gemini-2.5-pro" });
          const result = await fallbackModel.generateContent(prompt);
          const text = result.response.text();
-         const cleanedJson = text.replace(/```json|```/g, "").trim();
+         const cleanedJson = text.replace(/\`\`\`json|\`\`\`/g, "").trim();
          return JSON.parse(cleanedJson);
       }
       throw new Error(`AI Analysis failed: ${error.message}`);
@@ -60,15 +64,15 @@ export class GeminiAdapter implements AIProvider {
     return result.response.text();
   }
 
-  async askQuestion(title: string, artist: string, question: string, context?: string): Promise<string> {
+  async askQuestion(title: string, artist: string, question: string, lyrics?: string): Promise<string> {
     const prompt = `
       You are an expert music critic and emotional analyst. 
       Context: User is listening to "${title}" by "${artist}".
-      ${context ? `Previous context: ${context}` : ""}
+      ${lyrics ? `Song Lyrics: \n${lyrics}` : ""}
       
       User Question: "${question}"
       
-      Provide a concise, insightful, and emotionally resonant answer.
+      Provide a concise, insightful, and emotionally resonant answer using the lyrics as evidence if available.
     `;
 
     const result = await this.model.generateContent(prompt);
